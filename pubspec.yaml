@@ -1,0 +1,25 @@
+name: univ_test_archive
+description: 大学の授業の復習用 4択問題集アプリ（iOS / Android / Web 対応）
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: ^3.13.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # 保存先ディレクトリの取得（iOS / Android / デスクトップ）
+  path_provider: ^2.1.4
+  # 問題文に添付する画像の選択（ギャラリー / ファイル）
+  image_picker: ^1.1.2
+  # Web での localStorage アクセス
+  web: ^1.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
