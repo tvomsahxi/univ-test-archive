@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../data/quiz_repository.dart';
 import '../main.dart';
 import '../widgets/pickers.dart';
 import 'question_list_screen.dart';
@@ -62,14 +63,7 @@ class TopicScreen extends StatelessWidget {
             child: FilledButton.icon(
               onPressed: totalCount == 0
                   ? null
-                  : () => Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => QuizScreen(
-                            topicId: topicId,
-                            title: topic.name,
-                          ),
-                        ),
-                      ),
+                  : () => _startTopicQuiz(context, repo, topic.name, totalCount),
               icon: const Icon(Icons.play_arrow),
               label: Text('この題材全体から出題（$totalCount 問）'),
             ),
@@ -130,6 +124,72 @@ class TopicScreen extends StatelessWidget {
       ),
     );
   }
+
+  /// 題材全体からの出題。開始前に出題数の上限を選ばせる。
+  Future<void> _startTopicQuiz(BuildContext context, QuizRepository repo,
+      String topicName, int totalCount) async {
+    final limit = await _askQuestionLimit(context, totalCount);
+    if (limit == _limitCancelled || !context.mounted) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => QuizScreen(
+          pool: repo.questionsIn(topicId),
+          limit: limit,
+          title: topicName,
+        ),
+      ),
+    );
+  }
+
+  /// キャンセルを null(=全問)と区別するための番兵値。
+  static const int _limitCancelled = -1;
+
+  /// 出題数を尋ねるダイアログ。全問なら null、キャンセルなら [_limitCancelled]。
+  Future<int?> _askQuestionLimit(BuildContext context, int totalCount) async {
+    final controller = TextEditingController();
+    final result = await showDialog<int>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('出題数を選択'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('全 $totalCount 問からランダムに出題します。'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              autofocus: true,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                labelText: '出題数（空欄なら全問）',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(_limitCancelled),
+            child: const Text('キャンセル'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(0),
+            child: const Text('全問'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final n = int.tryParse(controller.text.trim());
+              Navigator.of(context).pop((n == null || n <= 0) ? 0 : n);
+            },
+            child: const Text('開始'),
+          ),
+        ],
+      ),
+    );
+    if (result == null || result == _limitCancelled) return _limitCancelled;
+    return result == 0 ? null : result;
+  }
 }
 
 class _SubTopicTile extends StatelessWidget {
@@ -170,8 +230,8 @@ class _SubTopicTile extends StatelessWidget {
                 : () => Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (_) => QuizScreen(
-                          topicId: topicId,
-                          subTopicId: subTopicId,
+                          pool: repo.questionsIn(topicId,
+                              subTopicId: subTopicId),
                           title: '${topic.name} / ${sub.name}',
                         ),
                       ),
@@ -200,7 +260,7 @@ class _SubTopicTile extends StatelessWidget {
     );
   }
 
-  Future<void> _deleteSubTopic(BuildContext context, dynamic repo,
+  Future<void> _deleteSubTopic(BuildContext context, QuizRepository repo,
       String name, int count) async {
     if (count == 0) {
       final ok = await confirmDelete(context, 'サブ題材「$name」を削除しますか？');

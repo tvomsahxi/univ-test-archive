@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../data/file_saver.dart';
 import '../main.dart';
 
 /// データ管理画面。保存先の確認、JSON の書き出し / 読み込みができる。
@@ -28,6 +29,23 @@ class DataScreen extends StatelessWidget {
             ),
           ),
           const Divider(),
+          ListTile(
+            leading: const Icon(Icons.download),
+            title: const Text('JSON をファイルとして保存'),
+            subtitle: const Text(
+                'Web ではブラウザのダウンロード、モバイルでは exports フォルダに保存されます'),
+            onTap: () async {
+              final messenger = ScaffoldMessenger.of(context);
+              try {
+                final message =
+                    await saveJsonFile(repo.exportJson(), 'questions.json');
+                messenger.showSnackBar(SnackBar(content: Text(message)));
+              } catch (e) {
+                messenger.showSnackBar(
+                    SnackBar(content: Text('保存に失敗しました: $e')));
+              }
+            },
+          ),
           ListTile(
             leading: const Icon(Icons.copy_all),
             title: const Text('JSON を書き出す（クリップボードへコピー）'),

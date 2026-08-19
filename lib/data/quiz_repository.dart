@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 
@@ -185,6 +186,24 @@ class QuizRepository extends ChangeNotifier {
       questionsIn(topicId,
               subTopicId: subTopicId, onlyUncategorized: onlyUncategorized)
           .length;
+
+  /// 出題用の問題セットを作る。シャッフルし、[limit] があれば先頭 N 問に絞る。
+  ///
+  /// 将来「間違えた問題だけ復習」のような絞り込みを足すときは、
+  /// ここに条件を追加すれば出題画面側の変更なしで対応できる。
+  List<Question> buildQuizSet(
+    String topicId, {
+    String? subTopicId,
+    int? limit,
+    Random? random,
+  }) {
+    final pool = questionsIn(topicId, subTopicId: subTopicId)
+      ..shuffle(random);
+    if (limit != null && limit > 0 && limit < pool.length) {
+      return pool.sublist(0, limit);
+    }
+    return pool;
+  }
 
   Future<void> addQuestion(Question question) async {
     _questions = [..._questions, question];

@@ -2,20 +2,26 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 
-import '../main.dart';
 import '../models/quiz_models.dart';
 
-/// 出題画面。題材（またはサブ題材）内の問題をランダムな順で出題する。
+/// 出題画面。渡された問題プールからランダムな順で出題する。
+///
+/// 問題の選び方(題材全体 / サブ題材 / 上限付き / 将来の「間違えた問題だけ」など)は
+/// 呼び出し側(QuizRepository.buildQuizSet)が決め、この画面は出題に専念する。
 class QuizScreen extends StatefulWidget {
   const QuizScreen({
     super.key,
-    required this.topicId,
-    this.subTopicId,
+    required this.pool,
+    this.limit,
     required this.title,
   });
 
-  final String topicId;
-  final String? subTopicId;
+  /// 出題対象の問題プール。
+  final List<Question> pool;
+
+  /// 1回の出題数の上限。null なら全問。
+  final int? limit;
+
   final String title;
 
   @override
@@ -28,18 +34,24 @@ class _QuizScreenState extends State<QuizScreen> {
   Set<int> _selected = {};
   bool _answered = false;
   int _correctCount = 0;
-  bool _initialized = false;
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (_initialized) return;
-    _initialized = true;
-    // 出題開始時に一度だけスナップショットを取り、シャッフルする。
-    final repo = RepositoryScope.of(context);
-    _questions = repo.questionsIn(widget.topicId,
-        subTopicId: widget.subTopicId)
-      ..shuffle();
+  void initState() {
+    super.initState();
+    _startNewRun();
+  }
+
+  /// プールをシャッフルし、上限を適用して新しい出題を始める。
+  void _startNewRun() {
+    final pool = [...widget.pool]..shuffle();
+    final limit = widget.limit;
+    _questions = (limit != null && limit > 0 && limit < pool.length)
+        ? pool.sublist(0, limit)
+        : pool;
+    _index = 0;
+    _selected = {};
+    _answered = false;
+    _correctCount = 0;
   }
 
   Question get _current => _questions[_index];
@@ -201,15 +213,7 @@ class _QuizScreenState extends State<QuizScreen> {
                   style: theme.textTheme.headlineSmall),
               const SizedBox(height: 32),
               FilledButton.icon(
-                onPressed: () {
-                  setState(() {
-                    _questions.shuffle();
-                    _index = 0;
-                    _selected = {};
-                    _answered = false;
-                    _correctCount = 0;
-                  });
-                },
+                onPressed: () => setState(_startNewRun),
                 icon: const Icon(Icons.replay),
                 label: const Text('もう一度挑戦'),
               ),

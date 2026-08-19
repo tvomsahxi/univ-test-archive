@@ -159,6 +159,53 @@ void main() {
     });
   });
 
+  group('出題セットの作成', () {
+    test('上限なしなら全問、上限ありなら指定数だけ返す', () async {
+      final repo = QuizRepository(MemoryStorage());
+      await repo.load();
+      final t = await repo.addTopic('数学');
+      for (var i = 0; i < 5; i++) {
+        await repo.addQuestion(buildQuestion(topicId: t.id));
+      }
+
+      expect(repo.buildQuizSet(t.id), hasLength(5));
+      expect(repo.buildQuizSet(t.id, limit: 3), hasLength(3));
+      // 上限がプールより大きい場合は全問。
+      expect(repo.buildQuizSet(t.id, limit: 10), hasLength(5));
+      // 0 以下の上限は「制限なし」扱い。
+      expect(repo.buildQuizSet(t.id, limit: 0), hasLength(5));
+    });
+
+    test('上限付きでも重複なくプール内の問題だけが選ばれる', () async {
+      final repo = QuizRepository(MemoryStorage());
+      await repo.load();
+      final t = await repo.addTopic('数学');
+      for (var i = 0; i < 6; i++) {
+        await repo.addQuestion(buildQuestion(topicId: t.id));
+      }
+      final poolIds = repo.questionsIn(t.id).map((q) => q.id).toSet();
+
+      final set = repo.buildQuizSet(t.id, limit: 4);
+      final ids = set.map((q) => q.id).toSet();
+      expect(ids, hasLength(4));
+      expect(poolIds.containsAll(ids), isTrue);
+    });
+
+    test('サブ題材を指定するとその中からだけ選ばれる', () async {
+      final repo = QuizRepository(MemoryStorage());
+      await repo.load();
+      final t = await repo.addTopic('数学');
+      final s = await repo.addSubTopic(t.id, '第1回');
+      await repo
+          .addQuestion(buildQuestion(topicId: t.id, subTopicId: s.id));
+      await repo.addQuestion(buildQuestion(topicId: t.id));
+
+      final set = repo.buildQuizSet(t.id, subTopicId: s.id);
+      expect(set, hasLength(1));
+      expect(set.single.subTopicId, s.id);
+    });
+  });
+
   group('書き出しと読み込み', () {
     test('exportJson を importJson で復元できる', () async {
       final repo = QuizRepository(MemoryStorage());
