@@ -1,11 +1,11 @@
 {
-    "name": "univ_test_archive",
-    "short_name": "univ_test_archive",
+    "name": "問題集アーカイブ",
+    "short_name": "問題集",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "大学の授業の復習用 4択問題集アプリ",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
