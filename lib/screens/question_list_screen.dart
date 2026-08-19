@@ -48,7 +48,7 @@ class QuestionListScreen extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   subtitle: Text([
-                    q.answerType.label,
+                    '正解 ${q.correctIndexes.length} 個',
                     if (sub != null) sub.name,
                     if (q.imageBase64 != null) '画像あり',
                   ].join(' / ')),

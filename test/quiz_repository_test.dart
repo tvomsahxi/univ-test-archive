@@ -20,7 +20,6 @@ class MemoryStorage implements QuizStorage {
 Question buildQuestion({
   required String topicId,
   String? subTopicId,
-  AnswerType answerType = AnswerType.single,
   Set<int> correct = const {0},
 }) {
   return Question(
@@ -32,25 +31,21 @@ Question buildQuestion({
       for (var i = 0; i < 4; i++)
         Choice(text: '選択肢$i', isCorrect: correct.contains(i)),
     ],
-    answerType: answerType,
     explanation: '解説',
   );
 }
 
 void main() {
   group('正誤判定', () {
-    test('1つ選択: 正解の選択肢のみ選べば正解', () {
+    test('正解が1つの問題: その選択肢だけ選べば正解', () {
       final q = buildQuestion(topicId: 't1', correct: {2});
       expect(q.isCorrectAnswer({2}), isTrue);
       expect(q.isCorrectAnswer({0}), isFalse);
       expect(q.isCorrectAnswer({0, 2}), isFalse);
     });
 
-    test('複数選択: 過不足なく選んだ場合のみ正解', () {
-      final q = buildQuestion(
-          topicId: 't1',
-          answerType: AnswerType.multiple,
-          correct: {1, 3});
+    test('正解が複数の問題: 過不足なく選んだ場合のみ正解', () {
+      final q = buildQuestion(topicId: 't1', correct: {1, 3});
       expect(q.isCorrectAnswer({1, 3}), isTrue);
       expect(q.isCorrectAnswer({1}), isFalse);
       expect(q.isCorrectAnswer({1, 2, 3}), isFalse);
@@ -68,7 +63,6 @@ void main() {
       await repo.addQuestion(buildQuestion(
         topicId: topic.id,
         subTopicId: sub.id,
-        answerType: AnswerType.multiple,
         correct: {0, 2},
       ));
 
@@ -81,7 +75,6 @@ void main() {
       expect(repo2.topics.first.subTopics.first.name, '第1回');
       expect(repo2.questions, hasLength(1));
       final q = repo2.questions.first;
-      expect(q.answerType, AnswerType.multiple);
       expect(q.correctIndexes, {0, 2});
       expect(q.explanation, '解説');
     });

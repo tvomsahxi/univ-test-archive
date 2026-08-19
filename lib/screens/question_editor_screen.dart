@@ -36,8 +36,7 @@ class _QuestionEditorScreenState extends State<QuestionEditorScreen> {
 
   String? _topicId;
   String? _subTopicId;
-  AnswerType _answerType = AnswerType.single;
-  List<bool> _correct = List.filled(choiceCount, false);
+  final List<bool> _correct = List.filled(choiceCount, false);
   String? _imageBase64;
   bool _initialized = false;
 
@@ -66,7 +65,6 @@ class _QuestionEditorScreenState extends State<QuestionEditorScreen> {
         _subTopicId = q.subTopicId;
         _questionController.text = q.text;
         _explanationController.text = q.explanation;
-        _answerType = q.answerType;
         _imageBase64 = q.imageBase64;
         for (var i = 0; i < choiceCount; i++) {
           if (i < q.choices.length) {
@@ -196,15 +194,9 @@ class _QuestionEditorScreenState extends State<QuestionEditorScreen> {
           .showSnackBar(const SnackBar(content: Text('題材を選択してください')));
       return;
     }
-    final correctCount = _correct.where((c) => c).length;
-    if (correctCount == 0) {
+    if (!_correct.contains(true)) {
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text('正解の選択肢に丸を付けてください')));
-      return;
-    }
-    if (_answerType == AnswerType.single && correctCount > 1) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('「1つ選択」の問題では正解を1つだけにしてください')));
       return;
     }
 
@@ -229,7 +221,6 @@ class _QuestionEditorScreenState extends State<QuestionEditorScreen> {
           imageBase64: _imageBase64,
           clearImage: _imageBase64 == null,
           choices: choices,
-          answerType: _answerType,
           explanation: _explanationController.text.trim(),
         ));
       }
@@ -241,7 +232,6 @@ class _QuestionEditorScreenState extends State<QuestionEditorScreen> {
         text: _questionController.text.trim(),
         imageBase64: _imageBase64,
         choices: choices,
-        answerType: _answerType,
         explanation: _explanationController.text.trim(),
       ));
     }
@@ -326,40 +316,13 @@ class _QuestionEditorScreenState extends State<QuestionEditorScreen> {
               ),
             const SizedBox(height: 16),
 
-            // ------------------------------------------------ 解答形式
-            Text('解答形式', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 8),
-            SegmentedButton<AnswerType>(
-              segments: const [
-                ButtonSegment(
-                    value: AnswerType.single,
-                    label: Text('1つ選択'),
-                    icon: Icon(Icons.radio_button_checked)),
-                ButtonSegment(
-                    value: AnswerType.multiple,
-                    label: Text('複数選択'),
-                    icon: Icon(Icons.check_box)),
-              ],
-              selected: {_answerType},
-              onSelectionChanged: (selection) {
-                setState(() {
-                  _answerType = selection.first;
-                  // 1つ選択に切り替えたとき、正解が複数残らないよう先頭だけ残す。
-                  if (_answerType == AnswerType.single) {
-                    var found = false;
-                    _correct = [
-                      for (final c in _correct)
-                        if (c && !found) (found = true) else false,
-                    ];
-                  }
-                });
-              },
-            ),
-            const SizedBox(height: 24),
-
             // ------------------------------------------------ 選択肢
-            Text('選択肢（正解に丸を付ける）',
-                style: Theme.of(context).textTheme.titleMedium),
+            Text('選択肢', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 4),
+            Text(
+              '正解に丸を付けてください（1つでも複数でも可）',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
             const SizedBox(height: 8),
             for (var i = 0; i < choiceCount; i++)
               Padding(
@@ -378,17 +341,8 @@ class _QuestionEditorScreenState extends State<QuestionEditorScreen> {
                             : Theme.of(context).disabledColor,
                         size: 28,
                       ),
-                      onPressed: () {
-                        setState(() {
-                          if (_answerType == AnswerType.single) {
-                            final next = !_correct[i];
-                            _correct = List.filled(choiceCount, false);
-                            _correct[i] = next;
-                          } else {
-                            _correct[i] = !_correct[i];
-                          }
-                        });
-                      },
+                      onPressed: () =>
+                          setState(() => _correct[i] = !_correct[i]),
                     ),
                     Expanded(
                       child: TextFormField(

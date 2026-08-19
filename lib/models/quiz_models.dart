@@ -1,23 +1,18 @@
 import 'dart:math';
 
-/// 解答形式。1つだけ選ぶ問題と、複数選ぶ問題の両方に対応する。
-enum AnswerType {
-  single,
-  multiple;
-
-  String get label => this == AnswerType.single ? '1つ選択' : '複数選択';
-
-  static AnswerType fromJson(Object? value) =>
-      value == 'multiple' ? AnswerType.multiple : AnswerType.single;
-
-  String toJson() => name;
-}
+final Random _idRandom = Random();
+int _idCounter = 0;
 
 /// ID 生成。外部パッケージに依存せず、実用上十分な一意性を確保する。
+///
+/// 乱数の上限には 2^30 を 16 進リテラルで指定している。`1 << 32` のような
+/// シフト式は Web(dart2js)では JavaScript の 32bit シフト仕様で 0 になり、
+/// `nextInt` が RangeError を投げるため使わないこと。
 String generateId(String prefix) {
   final now = DateTime.now().microsecondsSinceEpoch.toRadixString(36);
-  final rand = Random().nextInt(1 << 32).toRadixString(36);
-  return '$prefix-$now-$rand';
+  final rand = _idRandom.nextInt(0x40000000).toRadixString(36);
+  final seq = (_idCounter++).toRadixString(36);
+  return '$prefix-$now-$rand$seq';
 }
 
 /// 4択のうちの1つ。
@@ -101,7 +96,6 @@ class Question {
     required this.subTopicId,
     required this.text,
     required this.choices,
-    required this.answerType,
     this.imageBase64,
     this.explanation = '',
     DateTime? createdAt,
@@ -115,7 +109,6 @@ class Question {
   final String text;
   final String? imageBase64;
   final List<Choice> choices;
-  final AnswerType answerType;
   final String explanation;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -139,7 +132,6 @@ class Question {
     String? imageBase64,
     bool clearImage = false,
     List<Choice>? choices,
-    AnswerType? answerType,
     String? explanation,
     DateTime? updatedAt,
   }) =>
@@ -150,7 +142,6 @@ class Question {
         text: text ?? this.text,
         imageBase64: clearImage ? null : (imageBase64 ?? this.imageBase64),
         choices: choices ?? this.choices,
-        answerType: answerType ?? this.answerType,
         explanation: explanation ?? this.explanation,
         createdAt: createdAt,
         updatedAt: updatedAt ?? DateTime.now(),
@@ -165,7 +156,7 @@ class Question {
         choices: ((json['choices'] as List<dynamic>?) ?? const [])
             .map((e) => Choice.fromJson(Map<String, dynamic>.from(e as Map)))
             .toList(),
-        answerType: AnswerType.fromJson(json['answerType']),
+        // 旧形式の 'answerType' は無視する（常に複数選択として扱う）。
         explanation: (json['explanation'] ?? '') as String,
         createdAt: DateTime.tryParse((json['createdAt'] ?? '') as String),
         updatedAt: DateTime.tryParse((json['updatedAt'] ?? '') as String),
@@ -178,7 +169,6 @@ class Question {
         'text': text,
         'imageBase64': imageBase64,
         'choices': choices.map((e) => e.toJson()).toList(),
-        'answerType': answerType.toJson(),
         'explanation': explanation,
         'createdAt': createdAt.toIso8601String(),
         'updatedAt': updatedAt.toIso8601String(),

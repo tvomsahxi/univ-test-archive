@@ -60,11 +60,7 @@ class _QuizScreenState extends State<QuizScreen> {
   void _toggleChoice(int i) {
     if (_answered) return;
     setState(() {
-      if (_current.answerType == AnswerType.single) {
-        _selected = {i};
-      } else {
-        _selected.contains(i) ? _selected.remove(i) : _selected.add(i);
-      }
+      _selected.contains(i) ? _selected.remove(i) : _selected.add(i);
     });
   }
 
@@ -111,7 +107,7 @@ class _QuizScreenState extends State<QuizScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Text('第 ${_index + 1} 問 / 全 ${_questions.length} 問　（${q.answerType.label}）',
+          Text('第 ${_index + 1} 問 / 全 ${_questions.length} 問',
               style: theme.textTheme.labelLarge),
           const SizedBox(height: 8),
           Text(q.text, style: theme.textTheme.titleLarge),
@@ -133,7 +129,6 @@ class _QuizScreenState extends State<QuizScreen> {
               selected: _selected.contains(i),
               answered: _answered,
               isCorrectChoice: q.choices[i].isCorrect,
-              multiple: q.answerType == AnswerType.multiple,
               onTap: () => _toggleChoice(i),
             ),
           const SizedBox(height: 16),
@@ -237,7 +232,6 @@ class _ChoiceCard extends StatelessWidget {
     required this.selected,
     required this.answered,
     required this.isCorrectChoice,
-    required this.multiple,
     required this.onTap,
   });
 
@@ -245,7 +239,6 @@ class _ChoiceCard extends StatelessWidget {
   final bool selected;
   final bool answered;
   final bool isCorrectChoice;
-  final bool multiple;
   final VoidCallback onTap;
 
   @override
@@ -278,11 +271,7 @@ class _ChoiceCard extends StatelessWidget {
       child: ListTile(
         onTap: onTap,
         leading: Icon(
-          multiple
-              ? (selected ? Icons.check_box : Icons.check_box_outline_blank)
-              : (selected
-                  ? Icons.radio_button_checked
-                  : Icons.radio_button_unchecked),
+          selected ? Icons.check_box : Icons.check_box_outline_blank,
           color: selected ? theme.colorScheme.primary : null,
         ),
         title: Text(text),
