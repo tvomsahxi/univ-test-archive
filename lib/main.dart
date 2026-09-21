@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'data/quiz_repository.dart';
 import 'data/storage.dart';
 import 'screens/home_screen.dart';
+import 'theme/prairie_theme.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,10 +23,7 @@ class QuizApp extends StatelessWidget {
       repository: repository,
       child: MaterialApp(
         title: '問題集アーカイブ',
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
-          useMaterial3: true,
-        ),
+        theme: buildPrairieTheme(),
         home: const HomeScreen(),
       ),
     );
@@ -42,8 +40,7 @@ class RepositoryScope extends InheritedNotifier<QuizRepository> {
   }) : super(notifier: repository);
 
   static QuizRepository of(BuildContext context) {
-    final scope =
-        context.dependOnInheritedWidgetOfExactType<RepositoryScope>();
+    final scope = context.dependOnInheritedWidgetOfExactType<RepositoryScope>();
     assert(scope != null, 'RepositoryScope が見つかりません');
     return scope!.notifier!;
   }

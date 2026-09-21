@@ -5,7 +5,9 @@ import 'package:image_picker/image_picker.dart';
 
 import '../main.dart';
 import '../models/quiz_models.dart';
+import '../theme/prairie_theme.dart';
 import '../widgets/pickers.dart';
+import '../widgets/prairie.dart';
 
 /// 問題の新規作成 / 編集画面。
 class QuestionEditorScreen extends StatefulWidget {
@@ -31,8 +33,10 @@ class _QuestionEditorScreenState extends State<QuestionEditorScreen> {
   final _formKey = GlobalKey<FormState>();
   final _questionController = TextEditingController();
   final _explanationController = TextEditingController();
-  final List<TextEditingController> _choiceControllers =
-      List.generate(choiceCount, (_) => TextEditingController());
+  final List<TextEditingController> _choiceControllers = List.generate(
+    choiceCount,
+    (_) => TextEditingController(),
+  );
 
   String? _topicId;
   String? _subTopicId;
@@ -111,8 +115,11 @@ class _QuestionEditorScreenState extends State<QuestionEditorScreen> {
         });
       }
     } else {
-      final name = await showNameInputDialog(context,
-          title: '新しい題材', hint: '例: 情報科学概論');
+      final name = await showNameInputDialog(
+        context,
+        title: '新しい題材',
+        hint: '例: 情報科学概論',
+      );
       if (name != null) {
         final topic = await repo.addTopic(name);
         setState(() {
@@ -161,8 +168,11 @@ class _QuestionEditorScreenState extends State<QuestionEditorScreen> {
         final sub = await showSubTopicPicker(context, topic.subTopics);
         if (sub != null) setState(() => _subTopicId = sub.id);
       case 'new':
-        final name = await showNameInputDialog(context,
-            title: '新しいサブ題材', hint: '例: 第3回');
+        final name = await showNameInputDialog(
+          context,
+          title: '新しいサブ題材',
+          hint: '例: 第3回',
+        );
         if (name != null) {
           final sub = await repo.addSubTopic(topic.id, name);
           setState(() => _subTopicId = sub.id);
@@ -174,8 +184,10 @@ class _QuestionEditorScreenState extends State<QuestionEditorScreen> {
 
   Future<void> _pickImage() async {
     try {
-      final picked = await ImagePicker()
-          .pickImage(source: ImageSource.gallery, maxWidth: 1600);
+      final picked = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1600,
+      );
       if (picked == null) return;
       final bytes = await picked.readAsBytes();
       setState(() => _imageBase64 = base64Encode(bytes));
@@ -196,16 +208,13 @@ class _QuestionEditorScreenState extends State<QuestionEditorScreen> {
     }
     if (!_correct.contains(true)) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('正解の選択肢に丸を付けてください')));
+          .showSnackBar(const SnackBar(content: Text('正解の選択肢に印を付けてください')));
       return;
     }
 
     final choices = [
       for (var i = 0; i < choiceCount; i++)
-        Choice(
-          text: _choiceControllers[i].text.trim(),
-          isCorrect: _correct[i],
-        ),
+        Choice(text: _choiceControllers[i].text.trim(), isCorrect: _correct[i]),
     ];
 
     final navigator = Navigator.of(context);
@@ -213,27 +222,31 @@ class _QuestionEditorScreenState extends State<QuestionEditorScreen> {
     if (existingId != null) {
       final original = repo.questionById(existingId);
       if (original != null) {
-        await repo.updateQuestion(original.copyWith(
-          topicId: _topicId,
-          subTopicId: _subTopicId,
-          clearSubTopic: _subTopicId == null,
-          text: _questionController.text.trim(),
-          imageBase64: _imageBase64,
-          clearImage: _imageBase64 == null,
-          choices: choices,
-          explanation: _explanationController.text.trim(),
-        ));
+        await repo.updateQuestion(
+          original.copyWith(
+            topicId: _topicId,
+            subTopicId: _subTopicId,
+            clearSubTopic: _subTopicId == null,
+            text: _questionController.text.trim(),
+            imageBase64: _imageBase64,
+            clearImage: _imageBase64 == null,
+            choices: choices,
+            explanation: _explanationController.text.trim(),
+          ),
+        );
       }
     } else {
-      await repo.addQuestion(Question(
-        id: generateId('q'),
-        topicId: _topicId!,
-        subTopicId: _subTopicId,
-        text: _questionController.text.trim(),
-        imageBase64: _imageBase64,
-        choices: choices,
-        explanation: _explanationController.text.trim(),
-      ));
+      await repo.addQuestion(
+        Question(
+          id: generateId('q'),
+          topicId: _topicId!,
+          subTopicId: _subTopicId,
+          text: _questionController.text.trim(),
+          imageBase64: _imageBase64,
+          choices: choices,
+          explanation: _explanationController.text.trim(),
+        ),
+      );
     }
     navigator.pop();
   }
@@ -253,8 +266,8 @@ class _QuestionEditorScreenState extends State<QuestionEditorScreen> {
           padding: const EdgeInsets.all(16),
           children: [
             // ------------------------------------------------ 題材の選択
-            Text('題材', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 8),
+            const PrairieSectionHeader('題材'),
+            const SizedBox(height: 12),
             Row(
               children: [
                 Expanded(
@@ -277,8 +290,8 @@ class _QuestionEditorScreenState extends State<QuestionEditorScreen> {
             const SizedBox(height: 24),
 
             // ------------------------------------------------ 問題文
-            Text('問題文', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 8),
+            const PrairieSectionHeader('問題文', accent: PrairieColors.ochre),
+            const SizedBox(height: 12),
             TextFormField(
               controller: _questionController,
               maxLines: null,
@@ -317,32 +330,49 @@ class _QuestionEditorScreenState extends State<QuestionEditorScreen> {
             const SizedBox(height: 16),
 
             // ------------------------------------------------ 選択肢
-            Text('選択肢', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 4),
-            Text(
-              '正解に丸を付けてください（1つでも複数でも可）',
-              style: Theme.of(context).textTheme.bodySmall,
+            const PrairieSectionHeader(
+              '選択肢',
+              accent: PrairieColors.moss,
+              subtitle: '正解に印を付けてください（1つでも複数でも可）',
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             for (var i = 0; i < choiceCount; i++)
               Padding(
                 padding: const EdgeInsets.only(bottom: 12),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    IconButton(
-                      tooltip: '正解にする',
-                      icon: Icon(
-                        _correct[i]
-                            ? Icons.circle_outlined
-                            : Icons.radio_button_unchecked,
-                        color: _correct[i]
-                            ? Colors.redAccent
-                            : Theme.of(context).disabledColor,
-                        size: 28,
+                    // 正解の印。塗りつぶした方形はアートグラスの色片に通じる。
+                    Tooltip(
+                      message: '正解にする',
+                      child: InkWell(
+                        onTap: () => setState(() => _correct[i] = !_correct[i]),
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Container(
+                            width: 24,
+                            height: 24,
+                            decoration: BoxDecoration(
+                              color: _correct[i]
+                                  ? PrairieColors.cherokee
+                                  : Colors.transparent,
+                              border: Border.all(
+                                color: _correct[i]
+                                    ? PrairieColors.cherokee
+                                    : PrairieColors.stone,
+                                width: 2,
+                              ),
+                            ),
+                            child: _correct[i]
+                                ? const Icon(
+                                    Icons.check,
+                                    size: 16,
+                                    color: PrairieColors.parchment,
+                                  )
+                                : null,
+                          ),
+                        ),
                       ),
-                      onPressed: () =>
-                          setState(() => _correct[i] = !_correct[i]),
                     ),
                     Expanded(
                       child: TextFormField(
@@ -353,8 +383,8 @@ class _QuestionEditorScreenState extends State<QuestionEditorScreen> {
                         ),
                         validator: (value) =>
                             (value == null || value.trim().isEmpty)
-                                ? '選択肢を入力してください'
-                                : null,
+                            ? '選択肢を入力してください'
+                            : null,
                       ),
                     ),
                   ],
@@ -363,8 +393,8 @@ class _QuestionEditorScreenState extends State<QuestionEditorScreen> {
             const SizedBox(height: 12),
 
             // ------------------------------------------------ 解説
-            Text('解説', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 8),
+            const PrairieSectionHeader('解説', accent: PrairieColors.ochre),
+            const SizedBox(height: 12),
             TextFormField(
               controller: _explanationController,
               maxLines: null,

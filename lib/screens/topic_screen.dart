@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../data/quiz_repository.dart';
 import '../main.dart';
+import '../theme/prairie_theme.dart';
 import '../widgets/pickers.dart';
+import '../widgets/prairie.dart';
 import 'question_list_screen.dart';
 import 'quiz_screen.dart';
 
@@ -21,8 +23,7 @@ class TopicScreen extends StatelessWidget {
       return const Scaffold(body: SizedBox.shrink());
     }
     final totalCount = repo.countIn(topicId);
-    final uncategorizedCount =
-        repo.countIn(topicId, onlyUncategorized: true);
+    final uncategorizedCount = repo.countIn(topicId, onlyUncategorized: true);
 
     return Scaffold(
       appBar: AppBar(
@@ -34,17 +35,23 @@ class TopicScreen extends StatelessWidget {
               final navigator = Navigator.of(context);
               switch (value) {
                 case 'rename':
-                  final name = await showNameInputDialog(context,
-                      title: '題材名を変更', initialValue: topic.name);
+                  final name = await showNameInputDialog(
+                    context,
+                    title: '題材名を変更',
+                    initialValue: topic.name,
+                  );
                   if (name != null) await repo.renameTopic(topicId, name);
                 case 'delete':
-                  final ok = await confirmDelete(context,
-                      '題材「${topic.name}」を削除しますか？\n配下のサブ題材と $totalCount 問もすべて削除されます。');
+                  final ok = await confirmDelete(
+                    context,
+                    '題材「${topic.name}」を削除しますか？\n配下のサブ題材と $totalCount 問もすべて削除されます。',
+                  );
                   if (ok) {
                     await repo.deleteTopic(topicId);
                     navigator.pop();
                     messenger.showSnackBar(
-                        SnackBar(content: Text('「${topic.name}」を削除しました')));
+                      SnackBar(content: Text('「${topic.name}」を削除しました')),
+                    );
                   }
               }
             },
@@ -60,49 +67,78 @@ class TopicScreen extends StatelessWidget {
         children: [
           Padding(
             padding: const EdgeInsets.all(16),
-            child: FilledButton.icon(
-              onPressed: totalCount == 0
-                  ? null
-                  : () => _startTopicQuiz(context, repo, topic.name, totalCount),
-              icon: const Icon(Icons.play_arrow),
-              label: Text('この題材全体から出題（$totalCount 問）'),
-            ),
-          ),
-          ListTile(
-            leading: const Icon(Icons.list_alt),
-            title: const Text('題材内の問題一覧'),
-            subtitle: Text('$totalCount 問'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => QuestionListScreen(
-                  topicId: topicId,
-                  title: '${topic.name} の問題',
-                ),
+            child: PrairieCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'この題材全体',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '$totalCount 問',
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
+                  const SizedBox(height: 12),
+                  const PrairieRule(),
+                  const SizedBox(height: 16),
+                  FilledButton.icon(
+                    onPressed: totalCount == 0
+                        ? null
+                        : () => _startTopicQuiz(
+                            context,
+                            repo,
+                            topic.name,
+                            totalCount,
+                          ),
+                    icon: const Icon(Icons.play_arrow),
+                    label: const Text('出題を開始'),
+                  ),
+                ],
               ),
             ),
           ),
-          if (uncategorizedCount > 0)
-            ListTile(
-              leading: const Icon(Icons.inbox_outlined),
-              title: const Text('サブ題材なしの問題'),
-              subtitle: Text('$uncategorizedCount 問'),
+          PrairieTile(
+            accent: PrairieColors.stone,
+            child: ListTile(
+              leading: const Icon(Icons.list_alt),
+              title: const Text('題材内の問題一覧'),
+              subtitle: Text('$totalCount 問'),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (_) => QuestionListScreen(
                     topicId: topicId,
-                    onlyUncategorized: true,
-                    title: '${topic.name} / サブ題材なし',
+                    title: '${topic.name} の問題',
                   ),
                 ),
               ),
             ),
-          const Divider(),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-            child: Text('サブ題材',
-                style: Theme.of(context).textTheme.titleMedium),
+          ),
+          if (uncategorizedCount > 0)
+            PrairieTile(
+              accent: PrairieColors.stone,
+              child: ListTile(
+                leading: const Icon(Icons.inbox_outlined),
+                title: const Text('サブ題材なしの問題'),
+                subtitle: Text('$uncategorizedCount 問'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => QuestionListScreen(
+                      topicId: topicId,
+                      onlyUncategorized: true,
+                      title: '${topic.name} / サブ題材なし',
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          const SizedBox(height: 24),
+          const Padding(
+            padding: EdgeInsets.fromLTRB(16, 0, 16, 12),
+            child: PrairieSectionHeader('サブ題材'),
           ),
           if (topic.subTopics.isEmpty)
             const Padding(
@@ -115,8 +151,11 @@ class TopicScreen extends StatelessWidget {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {
-          final name = await showNameInputDialog(context,
-              title: '新しいサブ題材', hint: '例: 第3回');
+          final name = await showNameInputDialog(
+            context,
+            title: '新しいサブ題材',
+            hint: '例: 第3回',
+          );
           if (name != null) await repo.addSubTopic(topicId, name);
         },
         icon: const Icon(Icons.add),
@@ -126,8 +165,12 @@ class TopicScreen extends StatelessWidget {
   }
 
   /// 題材全体からの出題。開始前に出題数の上限を選ばせる。
-  Future<void> _startTopicQuiz(BuildContext context, QuizRepository repo,
-      String topicName, int totalCount) async {
+  Future<void> _startTopicQuiz(
+    BuildContext context,
+    QuizRepository repo,
+    String topicName,
+    int totalCount,
+  ) async {
     final limit = await _askQuestionLimit(context, totalCount);
     if (limit == _limitCancelled || !context.mounted) return;
     Navigator.of(context).push(
@@ -206,67 +249,78 @@ class _SubTopicTile extends StatelessWidget {
     if (topic == null || sub == null) return const SizedBox.shrink();
     final count = repo.countIn(topicId, subTopicId: subTopicId);
 
-    return ListTile(
-      leading: const Icon(Icons.topic_outlined),
-      title: Text(sub.name),
-      subtitle: Text('$count 問'),
-      onTap: () => Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => QuestionListScreen(
-            topicId: topicId,
-            subTopicId: subTopicId,
-            title: '${topic.name} / ${sub.name}',
+    return PrairieTile(
+      accent: PrairieColors.cherokee,
+      child: ListTile(
+        leading: Container(width: 4, height: 34, color: PrairieColors.ochre),
+        title: Text(sub.name),
+        subtitle: Text('$count 問'),
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => QuestionListScreen(
+              topicId: topicId,
+              subTopicId: subTopicId,
+              title: '${topic.name} / ${sub.name}',
+            ),
           ),
         ),
-      ),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          IconButton(
-            tooltip: 'このサブ題材から出題',
-            icon: const Icon(Icons.play_arrow),
-            onPressed: count == 0
-                ? null
-                : () => Navigator.of(context).push(
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              tooltip: 'このサブ題材から出題',
+              icon: const Icon(Icons.play_arrow),
+              onPressed: count == 0
+                  ? null
+                  : () => Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (_) => QuizScreen(
-                          pool: repo.questionsIn(topicId,
-                              subTopicId: subTopicId),
+                          pool: repo.questionsIn(
+                            topicId,
+                            subTopicId: subTopicId,
+                          ),
                           title: '${topic.name} / ${sub.name}',
                         ),
                       ),
                     ),
-          ),
-          PopupMenuButton<String>(
-            onSelected: (value) async {
-              switch (value) {
-                case 'rename':
-                  final name = await showNameInputDialog(context,
-                      title: 'サブ題材名を変更', initialValue: sub.name);
-                  if (name != null) {
-                    await repo.renameSubTopic(topicId, subTopicId, name);
-                  }
-                case 'delete':
-                  await _deleteSubTopic(context, repo, sub.name, count);
-              }
-            },
-            itemBuilder: (context) => const [
-              PopupMenuItem(value: 'rename', child: Text('名前を変更')),
-              PopupMenuItem(value: 'delete', child: Text('削除')),
-            ],
-          ),
-        ],
+            ),
+            PopupMenuButton<String>(
+              onSelected: (value) async {
+                switch (value) {
+                  case 'rename':
+                    final name = await showNameInputDialog(
+                      context,
+                      title: 'サブ題材名を変更',
+                      initialValue: sub.name,
+                    );
+                    if (name != null) {
+                      await repo.renameSubTopic(topicId, subTopicId, name);
+                    }
+                  case 'delete':
+                    await _deleteSubTopic(context, repo, sub.name, count);
+                }
+              },
+              itemBuilder: (context) => const [
+                PopupMenuItem(value: 'rename', child: Text('名前を変更')),
+                PopupMenuItem(value: 'delete', child: Text('削除')),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Future<void> _deleteSubTopic(BuildContext context, QuizRepository repo,
-      String name, int count) async {
+  Future<void> _deleteSubTopic(
+    BuildContext context,
+    QuizRepository repo,
+    String name,
+    int count,
+  ) async {
     if (count == 0) {
       final ok = await confirmDelete(context, 'サブ題材「$name」を削除しますか？');
       if (ok) {
-        await repo.deleteSubTopic(topicId, subTopicId,
-            deleteQuestions: false);
+        await repo.deleteSubTopic(topicId, subTopicId, deleteQuestions: false);
       }
       return;
     }
@@ -293,7 +347,10 @@ class _SubTopicTile extends StatelessWidget {
       ),
     );
     if (choice == null) return;
-    await repo.deleteSubTopic(topicId, subTopicId,
-        deleteQuestions: choice == 'delete');
+    await repo.deleteSubTopic(
+      topicId,
+      subTopicId,
+      deleteQuestions: choice == 'delete',
+    );
   }
 }

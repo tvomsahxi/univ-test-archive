@@ -18,7 +18,9 @@ Future<Topic?> showTopicPicker(BuildContext context, List<Topic> topics) {
 
 /// 既存のサブ題材から1つ選ぶモーダル。
 Future<SubTopic?> showSubTopicPicker(
-    BuildContext context, List<SubTopic> subTopics) {
+  BuildContext context,
+  List<SubTopic> subTopics,
+) {
   return showModalBottomSheet<SubTopic>(
     context: context,
     showDragHandle: true,

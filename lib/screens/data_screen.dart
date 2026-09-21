@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 
 import '../data/file_saver.dart';
 import '../main.dart';
+import '../theme/prairie_theme.dart';
+import '../widgets/prairie.dart';
 
 /// データ管理画面。保存先の確認、JSON の書き出し / 読み込みができる。
 ///
@@ -20,29 +22,39 @@ class DataScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          const PrairieSectionHeader('保存先'),
+          const SizedBox(height: 8),
           FutureBuilder<String>(
             future: repo.storageLocation(),
             builder: (context, snapshot) => ListTile(
               leading: const Icon(Icons.folder_outlined),
-              title: const Text('保存先'),
-              subtitle: Text(snapshot.data ?? '確認中…'),
+              title: Text(snapshot.data ?? '確認中…'),
             ),
           ),
-          const Divider(),
+          const SizedBox(height: 28),
+          const PrairieSectionHeader(
+            '書き出し / 読み込み',
+            accent: PrairieColors.ochre,
+          ),
+          const SizedBox(height: 8),
           ListTile(
             leading: const Icon(Icons.download),
             title: const Text('JSON をファイルとして保存'),
             subtitle: const Text(
-                'Web ではブラウザのダウンロード、モバイルでは exports フォルダに保存されます'),
+              'Web ではブラウザのダウンロード、モバイルでは exports フォルダに保存されます',
+            ),
             onTap: () async {
               final messenger = ScaffoldMessenger.of(context);
               try {
-                final message =
-                    await saveJsonFile(repo.exportJson(), 'questions.json');
+                final message = await saveJsonFile(
+                  repo.exportJson(),
+                  'questions.json',
+                );
                 messenger.showSnackBar(SnackBar(content: Text(message)));
               } catch (e) {
                 messenger.showSnackBar(
-                    SnackBar(content: Text('保存に失敗しました: $e')));
+                  SnackBar(content: Text('保存に失敗しました: $e')),
+                );
               }
             },
           ),
@@ -54,7 +66,8 @@ class DataScreen extends StatelessWidget {
               final messenger = ScaffoldMessenger.of(context);
               await Clipboard.setData(ClipboardData(text: repo.exportJson()));
               messenger.showSnackBar(
-                  const SnackBar(content: Text('JSON をコピーしました')));
+                const SnackBar(content: Text('JSON をコピーしました')),
+              );
             },
           ),
           ListTile(
@@ -106,8 +119,7 @@ class DataScreen extends StatelessWidget {
       await repo.importJson(controller.text);
       messenger.showSnackBar(const SnackBar(content: Text('読み込みました')));
     } catch (e) {
-      messenger.showSnackBar(
-          SnackBar(content: Text('読み込みに失敗しました: $e')));
+      messenger.showSnackBar(SnackBar(content: Text('読み込みに失敗しました: $e')));
     }
   }
 }

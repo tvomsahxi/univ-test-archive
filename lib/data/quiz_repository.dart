@@ -51,7 +51,8 @@ class QuizRepository extends ChangeNotifier {
 
   QuizData get data => QuizData(topics: _topics, questions: _questions);
 
-  String exportJson() => const JsonEncoder.withIndent('  ').convert(data.toJson());
+  String exportJson() =>
+      const JsonEncoder.withIndent('  ').convert(data.toJson());
 
   Future<void> _persist() async {
     try {
@@ -110,16 +111,21 @@ class QuizRepository extends ChangeNotifier {
   }
 
   Future<void> renameSubTopic(
-      String topicId, String subTopicId, String name) async {
+    String topicId,
+    String subTopicId,
+    String name,
+  ) async {
     _topics = [
       for (final topic in _topics)
         if (topic.id != topicId)
           topic
         else
-          topic.copyWith(subTopics: [
-            for (final sub in topic.subTopics)
-              sub.id == subTopicId ? sub.copyWith(name: name.trim()) : sub,
-          ]),
+          topic.copyWith(
+            subTopics: [
+              for (final sub in topic.subTopics)
+                sub.id == subTopicId ? sub.copyWith(name: name.trim()) : sub,
+            ],
+          ),
     ];
     await _persist();
   }
@@ -137,8 +143,9 @@ class QuizRepository extends ChangeNotifier {
           topic
         else
           topic.copyWith(
-            subTopics:
-                topic.subTopics.where((sub) => sub.id != subTopicId).toList(),
+            subTopics: topic.subTopics
+                .where((sub) => sub.id != subTopicId)
+                .toList(),
           ),
     ];
     if (deleteQuestions) {
@@ -182,10 +189,15 @@ class QuizRepository extends ChangeNotifier {
     }).toList();
   }
 
-  int countIn(String topicId, {String? subTopicId, bool onlyUncategorized = false}) =>
-      questionsIn(topicId,
-              subTopicId: subTopicId, onlyUncategorized: onlyUncategorized)
-          .length;
+  int countIn(
+    String topicId, {
+    String? subTopicId,
+    bool onlyUncategorized = false,
+  }) => questionsIn(
+    topicId,
+    subTopicId: subTopicId,
+    onlyUncategorized: onlyUncategorized,
+  ).length;
 
   /// 出題用の問題セットを作る。シャッフルし、[limit] があれば先頭 N 問に絞る。
   ///
@@ -197,8 +209,7 @@ class QuizRepository extends ChangeNotifier {
     int? limit,
     Random? random,
   }) {
-    final pool = questionsIn(topicId, subTopicId: subTopicId)
-      ..shuffle(random);
+    final pool = questionsIn(topicId, subTopicId: subTopicId)..shuffle(random);
     if (limit != null && limit > 0 && limit < pool.length) {
       return pool.sublist(0, limit);
     }

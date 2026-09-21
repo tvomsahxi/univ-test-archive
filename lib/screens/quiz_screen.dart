@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 
 import '../models/quiz_models.dart';
+import '../theme/prairie_theme.dart';
+import '../widgets/prairie.dart';
 
 /// 出題画面。渡された問題プールからランダムな順で出題する。
 ///
@@ -107,14 +109,20 @@ class _QuizScreenState extends State<QuizScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Text('第 ${_index + 1} 問 / 全 ${_questions.length} 問',
-              style: theme.textTheme.labelLarge),
-          const SizedBox(height: 8),
+          Text(
+            '第 ${_index + 1} 問 ／ 全 ${_questions.length} 問',
+            style: theme.textTheme.labelLarge,
+          ),
+          const SizedBox(height: 10),
+          const PrairieRule(accent: PrairieColors.cherokee),
+          const SizedBox(height: 16),
           Text(q.text, style: theme.textTheme.titleLarge),
           if (q.imageBase64 != null) ...[
             const SizedBox(height: 12),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                border: Border.all(color: PrairieColors.stone),
+              ),
               child: Image.memory(
                 base64Decode(q.imageBase64!),
                 height: 220,
@@ -135,49 +143,54 @@ class _QuizScreenState extends State<QuizScreen> {
 
           // ------------------------------------------ 回答結果と解説
           if (_answered) ...[
-            Card(
-              color: isCorrect
-                  ? Colors.green.withValues(alpha: 0.12)
-                  : Colors.red.withValues(alpha: 0.12),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          isCorrect ? Icons.circle_outlined : Icons.close,
-                          color: isCorrect ? Colors.green : Colors.red,
-                          size: 32,
+            PrairieCard(
+              accent: isCorrect ? PrairieColors.moss : PrairieColors.brick,
+              background: PrairieColors.sand,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 32,
+                        height: 32,
+                        alignment: Alignment.center,
+                        color: isCorrect
+                            ? PrairieColors.moss
+                            : PrairieColors.brick,
+                        child: Icon(
+                          isCorrect ? Icons.check : Icons.close,
+                          color: PrairieColors.parchment,
+                          size: 20,
                         ),
-                        const SizedBox(width: 8),
-                        Text(
-                          isCorrect ? '正解！' : '不正解…',
-                          style: theme.textTheme.titleLarge?.copyWith(
-                            color: isCorrect
-                                ? Colors.green.shade800
-                                : Colors.red.shade800,
-                          ),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        isCorrect ? '正解' : '不正解',
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          color: isCorrect
+                              ? PrairieColors.moss
+                              : PrairieColors.brick,
                         ),
-                      ],
-                    ),
-                    if (q.explanation.trim().isNotEmpty) ...[
-                      const Divider(),
-                      Text('解説', style: theme.textTheme.titleSmall),
-                      const SizedBox(height: 4),
-                      Text(q.explanation),
+                      ),
                     ],
+                  ),
+                  if (q.explanation.trim().isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    const PrairieRule(),
+                    const SizedBox(height: 12),
+                    Text('解説', style: theme.textTheme.titleSmall),
+                    const SizedBox(height: 6),
+                    Text(q.explanation),
                   ],
-                ),
+                ],
               ),
             ),
             const SizedBox(height: 16),
             FilledButton.icon(
               onPressed: _next,
               icon: const Icon(Icons.arrow_forward),
-              label: Text(
-                  _index + 1 < _questions.length ? '次の問題へ' : '結果を見る'),
+              label: Text(_index + 1 < _questions.length ? '次の問題へ' : '結果を見る'),
             ),
           ] else
             FilledButton.icon(
@@ -196,31 +209,68 @@ class _QuizScreenState extends State<QuizScreen> {
     final rate = (_correctCount / _questions.length * 100).round();
     return Scaffold(
       appBar: AppBar(title: Text(widget.title)),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text('結果', style: theme.textTheme.headlineMedium),
-              const SizedBox(height: 16),
-              Text('$_correctCount / ${_questions.length} 問正解（$rate%）',
-                  style: theme.textTheme.headlineSmall),
-              const SizedBox(height: 32),
-              FilledButton.icon(
-                onPressed: () => setState(_startNewRun),
-                icon: const Icon(Icons.replay),
-                label: const Text('もう一度挑戦'),
+      body: Column(
+        children: [
+          const ArtGlassBanner(height: 72),
+          Expanded(
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text('結果', style: theme.textTheme.headlineMedium),
+                    const SizedBox(height: 20),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 32,
+                        vertical: 20,
+                      ),
+                      decoration: const BoxDecoration(
+                        color: PrairieColors.sand,
+                        border: Border(
+                          top: BorderSide(
+                            color: PrairieColors.cherokee,
+                            width: 3,
+                          ),
+                          bottom: BorderSide(
+                            color: PrairieColors.cherokee,
+                            width: 3,
+                          ),
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          Text(
+                            '$_correctCount / ${_questions.length}',
+                            style: theme.textTheme.headlineMedium,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '正答率 $rate%',
+                            style: theme.textTheme.titleMedium,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 36),
+                    FilledButton.icon(
+                      onPressed: () => setState(_startNewRun),
+                      icon: const Icon(Icons.replay),
+                      label: const Text('もう一度挑戦'),
+                    ),
+                    const SizedBox(height: 12),
+                    OutlinedButton.icon(
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: const Icon(Icons.arrow_back),
+                      label: const Text('戻る'),
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(height: 12),
-              OutlinedButton.icon(
-                onPressed: () => Navigator.of(context).pop(),
-                icon: const Icon(Icons.arrow_back),
-                label: const Text('戻る'),
-              ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -245,37 +295,66 @@ class _ChoiceCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    Color? borderColor;
+    // 回答後は正解を草原の緑、誤って選んだものを煉瓦色で示す。
+    Color accent = PrairieColors.stone;
+    Color background = PrairieColors.parchment;
     Widget? trailing;
     if (answered) {
-      // 回答後は正解の選択肢を緑、誤って選んだ選択肢を赤で示す。
       if (isCorrectChoice) {
-        borderColor = Colors.green;
-        trailing = const Icon(Icons.circle_outlined, color: Colors.green);
+        accent = PrairieColors.moss;
+        background = PrairieColors.moss.withValues(alpha: 0.08);
+        trailing = const Icon(Icons.check, color: PrairieColors.moss);
       } else if (selected) {
-        borderColor = Colors.red;
-        trailing = const Icon(Icons.close, color: Colors.red);
+        accent = PrairieColors.brick;
+        background = PrairieColors.brick.withValues(alpha: 0.08);
+        trailing = const Icon(Icons.close, color: PrairieColors.brick);
       }
     } else if (selected) {
-      borderColor = theme.colorScheme.primary;
+      accent = PrairieColors.cherokee;
+      background = PrairieColors.sand;
     }
 
-    return Card(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: borderColor ?? theme.dividerColor,
-          width: borderColor != null ? 2 : 1,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      // 背景色は Material 側に置く（ListTile のインク効果を隠さないため）。
+      child: Material(
+        color: background,
+        child: Container(
+          decoration: BoxDecoration(
+            border: Border(
+              left: BorderSide(color: accent, width: 6),
+              top: const BorderSide(color: PrairieColors.stone),
+              right: const BorderSide(color: PrairieColors.stone),
+              bottom: const BorderSide(color: PrairieColors.stone),
+            ),
+          ),
+          child: ListTile(
+            onTap: onTap,
+            // 選択の印も方形。角丸を避けて直線構成を保つ。
+            leading: Container(
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(
+                color: selected ? PrairieColors.cherokee : Colors.transparent,
+                border: Border.all(
+                  color: selected
+                      ? PrairieColors.cherokee
+                      : PrairieColors.stone,
+                  width: 2,
+                ),
+              ),
+              child: selected
+                  ? const Icon(
+                      Icons.check,
+                      size: 16,
+                      color: PrairieColors.parchment,
+                    )
+                  : null,
+            ),
+            title: Text(text, style: theme.textTheme.bodyLarge),
+            trailing: trailing,
+          ),
         ),
-      ),
-      child: ListTile(
-        onTap: onTap,
-        leading: Icon(
-          selected ? Icons.check_box : Icons.check_box_outline_blank,
-          color: selected ? theme.colorScheme.primary : null,
-        ),
-        title: Text(text),
-        trailing: trailing,
       ),
     );
   }
