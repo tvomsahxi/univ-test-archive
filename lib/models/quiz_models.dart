@@ -15,6 +15,26 @@ String generateId(String prefix) {
   return '$prefix-$now-$rand$seq';
 }
 
+/// 1回分の解答記録。いつ解いて、正解だったかを残す。
+class AnswerRecord {
+  const AnswerRecord({required this.answeredAt, required this.isCorrect});
+
+  final DateTime answeredAt;
+  final bool isCorrect;
+
+  /// 日付が壊れている記録は復元しない（null を返して読み飛ばす）。
+  static AnswerRecord? tryFromJson(Map<String, dynamic> json) {
+    final at = DateTime.tryParse((json['answeredAt'] ?? '') as String);
+    if (at == null) return null;
+    return AnswerRecord(answeredAt: at, isCorrect: json['isCorrect'] == true);
+  }
+
+  Map<String, dynamic> toJson() => {
+    'answeredAt': answeredAt.toIso8601String(),
+    'isCorrect': isCorrect,
+  };
+}
+
 /// 4択のうちの1つ。
 class Choice {
   const Choice({required this.text, required this.isCorrect});
@@ -100,6 +120,7 @@ class Question {
     required this.choices,
     this.imageBase64,
     this.explanation = '',
+    this.answers = const [],
     DateTime? createdAt,
     DateTime? updatedAt,
   }) : createdAt = createdAt ?? DateTime.now(),
@@ -112,8 +133,44 @@ class Question {
   final String? imageBase64;
   final List<Choice> choices;
   final String explanation;
+
+  /// 解答履歴。古い順に並ぶ。
+  final List<AnswerRecord> answers;
+
   final DateTime createdAt;
   final DateTime updatedAt;
+
+  /// 保持する解答履歴の上限。JSON が際限なく膨らむのを防ぐため、
+  /// これを超えたぶんは古いものから捨てる。
+  static const int maxAnswerHistory = 100;
+
+  /// 直近の解答。一度も解いていなければ null。
+  AnswerRecord? get lastAnswer => answers.isEmpty ? null : answers.last;
+
+  DateTime? get lastAnsweredAt => lastAnswer?.answeredAt;
+
+  /// 直近の正誤。一度も解いていなければ null。
+  bool? get lastIsCorrect => lastAnswer?.isCorrect;
+
+  int get answeredCount => answers.length;
+
+  int get correctAnswerCount => answers.where((a) => a.isCorrect).length;
+
+  /// 正答率（0.0〜1.0）。一度も解いていなければ null。
+  double? get accuracy =>
+      answers.isEmpty ? null : correctAnswerCount / answers.length;
+
+  /// 解答を1件追加した新しい問題を返す。
+  /// 解いただけでは問題の内容は変わらないので updatedAt は据え置く。
+  Question withAnswer(AnswerRecord record) {
+    final next = [...answers, record];
+    return copyWith(
+      answers: next.length > maxAnswerHistory
+          ? next.sublist(next.length - maxAnswerHistory)
+          : next,
+      updatedAt: updatedAt,
+    );
+  }
 
   /// 正解の選択肢の添字。
   Set<int> get correctIndexes => {
@@ -135,6 +192,7 @@ class Question {
     bool clearImage = false,
     List<Choice>? choices,
     String? explanation,
+    List<AnswerRecord>? answers,
     DateTime? updatedAt,
   }) => Question(
     id: id,
@@ -144,6 +202,7 @@ class Question {
     imageBase64: clearImage ? null : (imageBase64 ?? this.imageBase64),
     choices: choices ?? this.choices,
     explanation: explanation ?? this.explanation,
+    answers: answers ?? this.answers,
     createdAt: createdAt,
     updatedAt: updatedAt ?? DateTime.now(),
   );
@@ -159,6 +218,13 @@ class Question {
         .toList(),
     // 旧形式の 'answerType' は無視する（常に複数選択として扱う）。
     explanation: (json['explanation'] ?? '') as String,
+    // version 1 の JSON には 'answers' が無いので、その場合は空の履歴になる。
+    answers: ((json['answers'] as List<dynamic>?) ?? const [])
+        .map(
+          (e) => AnswerRecord.tryFromJson(Map<String, dynamic>.from(e as Map)),
+        )
+        .nonNulls
+        .toList(),
     createdAt: DateTime.tryParse((json['createdAt'] ?? '') as String),
     updatedAt: DateTime.tryParse((json['updatedAt'] ?? '') as String),
   );
@@ -171,6 +237,7 @@ class Question {
     'imageBase64': imageBase64,
     'choices': choices.map((e) => e.toJson()).toList(),
     'explanation': explanation,
+    'answers': answers.map((e) => e.toJson()).toList(),
     'createdAt': createdAt.toIso8601String(),
     'updatedAt': updatedAt.toIso8601String(),
   };
@@ -182,7 +249,8 @@ class QuizData {
 
   const QuizData.empty() : topics = const [], questions = const [];
 
-  static const int schemaVersion = 1;
+  /// version 2 で解答履歴（answers）を追加。version 1 の JSON も読める。
+  static const int schemaVersion = 2;
 
   final List<Topic> topics;
   final List<Question> questions;

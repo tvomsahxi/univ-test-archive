@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 
+import '../main.dart';
 import '../models/quiz_models.dart';
 import '../theme/prairie_theme.dart';
 import '../widgets/prairie.dart';
@@ -10,6 +11,7 @@ import '../widgets/prairie.dart';
 ///
 /// 問題の選び方(題材全体 / サブ題材 / 上限付き / 将来の「間違えた問題だけ」など)は
 /// 呼び出し側(QuizRepository.buildQuizSet)が決め、この画面は出題に専念する。
+/// 解答するたび、解答日時と正誤をリポジトリへ記録する。
 class QuizScreen extends StatefulWidget {
   const QuizScreen({
     super.key,
@@ -68,10 +70,14 @@ class _QuizScreenState extends State<QuizScreen> {
 
   void _submit() {
     if (_selected.isEmpty) return;
+    final question = _current;
+    final isCorrect = question.isCorrectAnswer(_selected);
     setState(() {
       _answered = true;
-      if (_current.isCorrectAnswer(_selected)) _correctCount++;
+      if (isCorrect) _correctCount++;
     });
+    // 解答日時と正誤を残す。復習の履歴として後から参照できる。
+    RepositoryScope.of(context).recordAnswer(question.id, isCorrect: isCorrect);
   }
 
   void _next() {

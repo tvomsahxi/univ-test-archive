@@ -60,11 +60,9 @@ void main() {
 
       final topic = await repo.addTopic('情報科学概論');
       final sub = await repo.addSubTopic(topic.id, '第1回');
-      await repo.addQuestion(buildQuestion(
-        topicId: topic.id,
-        subTopicId: sub.id,
-        correct: {0, 2},
-      ));
+      await repo.addQuestion(
+        buildQuestion(topicId: topic.id, subTopicId: sub.id, correct: {0, 2}),
+      );
 
       // 「次回起動」を再現: 同じ保存先から新しいリポジトリで読み込む。
       final repo2 = QuizRepository(storage);
@@ -109,8 +107,7 @@ void main() {
       await repo.load();
       final t = await repo.addTopic('数学');
       final s = await repo.addSubTopic(t.id, '第1回');
-      await repo.addQuestion(
-          buildQuestion(topicId: t.id, subTopicId: s.id));
+      await repo.addQuestion(buildQuestion(topicId: t.id, subTopicId: s.id));
 
       await repo.deleteSubTopic(t.id, s.id, deleteQuestions: false);
       expect(repo.topicById(t.id)!.subTopics, isEmpty);
@@ -124,8 +121,7 @@ void main() {
       await repo.load();
       final t = await repo.addTopic('数学');
       final s = await repo.addSubTopic(t.id, '第1回');
-      await repo.addQuestion(
-          buildQuestion(topicId: t.id, subTopicId: s.id));
+      await repo.addQuestion(buildQuestion(topicId: t.id, subTopicId: s.id));
       await repo.addQuestion(buildQuestion(topicId: t.id));
 
       await repo.deleteSubTopic(t.id, s.id, deleteQuestions: true);
@@ -139,12 +135,9 @@ void main() {
       final t = await repo.addTopic('数学');
       final s1 = await repo.addSubTopic(t.id, '第1回');
       final s2 = await repo.addSubTopic(t.id, '第2回');
-      await repo
-          .addQuestion(buildQuestion(topicId: t.id, subTopicId: s1.id));
-      await repo
-          .addQuestion(buildQuestion(topicId: t.id, subTopicId: s1.id));
-      await repo
-          .addQuestion(buildQuestion(topicId: t.id, subTopicId: s2.id));
+      await repo.addQuestion(buildQuestion(topicId: t.id, subTopicId: s1.id));
+      await repo.addQuestion(buildQuestion(topicId: t.id, subTopicId: s1.id));
+      await repo.addQuestion(buildQuestion(topicId: t.id, subTopicId: s2.id));
 
       expect(repo.countIn(t.id), 3);
       expect(repo.countIn(t.id, subTopicId: s1.id), 2);
@@ -189,8 +182,7 @@ void main() {
       await repo.load();
       final t = await repo.addTopic('数学');
       final s = await repo.addSubTopic(t.id, '第1回');
-      await repo
-          .addQuestion(buildQuestion(topicId: t.id, subTopicId: s.id));
+      await repo.addQuestion(buildQuestion(topicId: t.id, subTopicId: s.id));
       await repo.addQuestion(buildQuestion(topicId: t.id));
 
       final set = repo.buildQuizSet(t.id, subTopicId: s.id);
@@ -220,6 +212,64 @@ void main() {
       await repo.addTopic('英語');
       await expectLater(repo.importJson('not json'), throwsA(anything));
       expect(repo.topics, hasLength(1));
+    });
+  });
+
+  group('解答の記録', () {
+    test('recordAnswer が解答日と正誤を保存し、再読み込みでも残る', () async {
+      final storage = MemoryStorage();
+      final repo = QuizRepository(storage);
+      await repo.load();
+      final t = await repo.addTopic('数学');
+      await repo.addQuestion(buildQuestion(topicId: t.id));
+      final id = repo.questions.single.id;
+
+      await repo.recordAnswer(
+        id,
+        isCorrect: true,
+        at: DateTime(2026, 9, 21, 10),
+      );
+      await repo.recordAnswer(
+        id,
+        isCorrect: false,
+        at: DateTime(2026, 9, 22, 10),
+      );
+
+      final repo2 = QuizRepository(storage);
+      await repo2.load();
+      final q = repo2.questions.single;
+      expect(q.answeredCount, 2);
+      expect(q.correctAnswerCount, 1);
+      expect(q.lastAnsweredAt, DateTime(2026, 9, 22, 10));
+      expect(q.lastIsCorrect, isFalse);
+    });
+
+    test('存在しない問題への記録は何もしない', () async {
+      final repo = QuizRepository(MemoryStorage());
+      await repo.load();
+      final t = await repo.addTopic('数学');
+      await repo.addQuestion(buildQuestion(topicId: t.id));
+
+      await repo.recordAnswer('存在しない id', isCorrect: true);
+      expect(repo.questions.single.answeredCount, 0);
+    });
+
+    test('問題を編集しても解答履歴は失われない', () async {
+      final repo = QuizRepository(MemoryStorage());
+      await repo.load();
+      final t = await repo.addTopic('数学');
+      await repo.addQuestion(buildQuestion(topicId: t.id));
+      final id = repo.questions.single.id;
+      await repo.recordAnswer(id, isCorrect: true, at: DateTime(2026, 9, 21));
+
+      await repo.updateQuestion(
+        repo.questions.single.copyWith(text: '書き換えた問題文'),
+      );
+
+      final q = repo.questions.single;
+      expect(q.text, '書き換えた問題文');
+      expect(q.answeredCount, 1);
+      expect(q.lastIsCorrect, isTrue);
     });
   });
 }

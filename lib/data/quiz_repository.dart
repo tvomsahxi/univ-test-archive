@@ -228,6 +228,21 @@ class QuizRepository extends ChangeNotifier {
     await _persist();
   }
 
+  /// 出題で解答した結果（解答日時と正誤）を問題に記録する。
+  Future<void> recordAnswer(
+    String questionId, {
+    required bool isCorrect,
+    DateTime? at,
+  }) async {
+    final target = questionById(questionId);
+    if (target == null) return; // 出題中に削除された問題には記録しない
+    await updateQuestion(
+      target.withAnswer(
+        AnswerRecord(answeredAt: at ?? DateTime.now(), isCorrect: isCorrect),
+      ),
+    );
+  }
+
   Future<void> deleteQuestion(String id) async {
     _questions = _questions.where((q) => q.id != id).toList();
     await _persist();

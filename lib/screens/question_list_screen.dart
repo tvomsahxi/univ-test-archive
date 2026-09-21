@@ -65,12 +65,21 @@ class QuestionListScreen extends StatelessWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    subtitle: Text(
-                      [
-                        '正解 ${q.correctIndexes.length} 個',
-                        if (sub != null) sub.name,
-                        if (q.imageBase64 != null) '画像あり',
-                      ].join(' / '),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          [
+                            '正解 ${q.correctIndexes.length} 個',
+                            if (sub != null) sub.name,
+                            if (q.imageBase64 != null) '画像あり',
+                          ].join(' / '),
+                        ),
+                        if (q.lastAnswer != null) ...[
+                          const SizedBox(height: 4),
+                          _LastAnswerLine(question: q),
+                        ],
+                      ],
                     ),
                     onTap: () => Navigator.of(context).push(
                       MaterialPageRoute(
@@ -109,4 +118,44 @@ class QuestionListScreen extends StatelessWidget {
 
   String _preview(Question q) =>
       q.text.length <= 30 ? q.text : '${q.text.substring(0, 30)}…';
+}
+
+/// 直近の解答日と正誤、これまでの成績を一行で示す。
+class _LastAnswerLine extends StatelessWidget {
+  const _LastAnswerLine({required this.question});
+
+  final Question question;
+
+  static String _formatDate(DateTime d) => '${d.year}/${d.month}/${d.day}';
+
+  @override
+  Widget build(BuildContext context) {
+    final isCorrect = question.lastIsCorrect!;
+    final color = isCorrect ? PrairieColors.moss : PrairieColors.brick;
+    return Row(
+      children: [
+        // 正誤は方形の色片で示し、直線構成を保つ。
+        Container(
+          width: 14,
+          height: 14,
+          alignment: Alignment.center,
+          color: color,
+          child: Icon(
+            isCorrect ? Icons.check : Icons.close,
+            size: 10,
+            color: PrairieColors.parchment,
+          ),
+        ),
+        const SizedBox(width: 6),
+        Flexible(
+          child: Text(
+            '${_formatDate(question.lastAnsweredAt!)} に解答'
+            '　通算 ${question.correctAnswerCount}/${question.answeredCount} 正解',
+            style: Theme.of(context).textTheme.bodySmall,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
+    );
+  }
 }
