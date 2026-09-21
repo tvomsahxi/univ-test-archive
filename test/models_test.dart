@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:univ_test_archive/models/quiz_models.dart';
+import 'package:univ_test_archive/screens/data_screen.dart';
 
 void main() {
   group('generateId', () {
@@ -57,6 +58,19 @@ void main() {
       final q = Question.fromJson(json);
       expect(q.text, '旧形式の問題');
       expect(q.correctIndexes, {0});
+    });
+  });
+
+  group('書き出しファイル名', () {
+    test('日付が 0 埋めされた questions-YYYYMMDD.json になる', () {
+      expect(
+        DataScreen.fileNameFor(DateTime(2026, 9, 5)),
+        'questions-20260905.json',
+      );
+      expect(
+        DataScreen.fileNameFor(DateTime(2026, 12, 31)),
+        'questions-20261231.json',
+      );
     });
   });
 }

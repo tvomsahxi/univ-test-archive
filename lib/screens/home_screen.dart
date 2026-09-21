@@ -21,7 +21,7 @@ class HomeScreen extends StatelessWidget {
         title: const Text('問題集アーカイブ'),
         actions: [
           IconButton(
-            tooltip: 'データ管理',
+            tooltip: 'データ管理（JSON の保存・読み込み）',
             icon: const Icon(Icons.save_alt),
             onPressed: () => Navigator.of(context)
                 .push(MaterialPageRoute(builder: (_) => const DataScreen())),

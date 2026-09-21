@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -13,55 +14,67 @@ import '../widgets/prairie.dart';
 class DataScreen extends StatelessWidget {
   const DataScreen({super.key});
 
+  /// バックアップを取るたびに上書きしないよう、日付を入れたファイル名にする。
+  static String fileNameFor(DateTime now) {
+    final y = now.year.toString().padLeft(4, '0');
+    final m = now.month.toString().padLeft(2, '0');
+    final d = now.day.toString().padLeft(2, '0');
+    return 'questions-$y$m$d.json';
+  }
+
   @override
   Widget build(BuildContext context) {
     final repo = RepositoryScope.of(context);
+    final questionCount = repo.questions.length;
+    final topicCount = repo.topics.length;
 
     return Scaffold(
       appBar: AppBar(title: const Text('データ管理')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          const PrairieSectionHeader('保存先'),
-          const SizedBox(height: 8),
-          FutureBuilder<String>(
-            future: repo.storageLocation(),
-            builder: (context, snapshot) => ListTile(
-              leading: const Icon(Icons.folder_outlined),
-              title: Text(snapshot.data ?? '確認中…'),
+          // ------------------------------------------ 書き出し（主操作）
+          PrairieCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  kIsWeb ? 'JSON をダウンロード' : 'JSON を保存',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  '題材 $topicCount 件 ／ 問題 $questionCount 問',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                const SizedBox(height: 12),
+                const PrairieRule(),
+                const SizedBox(height: 12),
+                Text(
+                  kIsWeb
+                      ? 'ブラウザのダウンロードとして保存されます。'
+                      : '保存先を選べます。「ファイルに保存」で本体へ、'
+                            '「Google ドライブ」などのアプリを選べばクラウドへ送れます。',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 16),
+                FilledButton.icon(
+                  onPressed: () => _save(context),
+                  icon: Icon(kIsWeb ? Icons.download : Icons.ios_share),
+                  label: Text(kIsWeb ? 'ダウンロード' : '保存先を選んで保存'),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 28),
-          const PrairieSectionHeader(
-            '書き出し / 読み込み',
-            accent: PrairieColors.ochre,
-          ),
+          const SizedBox(height: 32),
+
+          // ------------------------------------------ その他の操作
+          const PrairieSectionHeader('そのほか', accent: PrairieColors.ochre),
           const SizedBox(height: 8),
-          ListTile(
-            leading: const Icon(Icons.download),
-            title: const Text('JSON をファイルとして保存'),
-            subtitle: const Text(
-              'Web ではブラウザのダウンロード、モバイルでは exports フォルダに保存されます',
-            ),
-            onTap: () async {
-              final messenger = ScaffoldMessenger.of(context);
-              try {
-                final message = await saveJsonFile(
-                  repo.exportJson(),
-                  'questions.json',
-                );
-                messenger.showSnackBar(SnackBar(content: Text(message)));
-              } catch (e) {
-                messenger.showSnackBar(
-                  SnackBar(content: Text('保存に失敗しました: $e')),
-                );
-              }
-            },
-          ),
           ListTile(
             leading: const Icon(Icons.copy_all),
-            title: const Text('JSON を書き出す（クリップボードへコピー）'),
-            subtitle: const Text('バックアップや他端末への移行に使えます'),
+            title: const Text('JSON をクリップボードにコピー'),
+            subtitle: const Text('テキストとして貼り付けて移行したいとき'),
             onTap: () async {
               final messenger = ScaffoldMessenger.of(context);
               await Clipboard.setData(ClipboardData(text: repo.exportJson()));
@@ -76,9 +89,36 @@ class DataScreen extends StatelessWidget {
             subtitle: const Text('現在のデータはすべて置き換えられます'),
             onTap: () => _showImportDialog(context),
           ),
+          const SizedBox(height: 32),
+
+          // ------------------------------------------ 自動保存先の説明
+          const PrairieSectionHeader('自動保存先', accent: PrairieColors.moss),
+          const SizedBox(height: 8),
+          FutureBuilder<String>(
+            future: repo.storageLocation(),
+            builder: (context, snapshot) => ListTile(
+              leading: const Icon(Icons.folder_outlined),
+              title: Text(snapshot.data ?? '確認中…'),
+              subtitle: const Text('変更のたびに自動で保存されています'),
+            ),
+          ),
         ],
       ),
     );
+  }
+
+  Future<void> _save(BuildContext context) async {
+    final repo = RepositoryScope.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final message = await saveJsonFile(
+        repo.exportJson(),
+        fileNameFor(DateTime.now()),
+      );
+      messenger.showSnackBar(SnackBar(content: Text(message)));
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('保存に失敗しました: $e')));
+    }
   }
 
   Future<void> _showImportDialog(BuildContext context) async {
